@@ -1,0 +1,12 @@
+@janaez.webapi_HostAddress = http://localhost:5209
+
+
+GET {{janaez.webapi_HostAddress}}/_health
+Accept: application/json
+
+
+
+
+
+
+###
