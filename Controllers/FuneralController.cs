@@ -1,4 +1,4 @@
-﻿using Elfie.Serialization;
+using Elfie.Serialization;
 using Humanizer;
 using janaez.webapi.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +42,85 @@ namespace janaez.webapi.Controllers
             .SqlQuery<TodayFuneral>(newsql)
             .ToList();
             return Ok(summaries);
+        }
+
+        [HttpGet()]
+        [Route("today-funeral-v2")]
+        public async Task<IActionResult> GetTodayFuneralV2()
+        {
+            try
+            {
+                var today = _timeZoneService.GetCurrentArabTime().Date;
+
+                var grouped = await appDbContext.Funerals
+                    .Include(f => f.Prayer)
+                    .Where(f => f.Date == today)
+                    .GroupBy(f => new { f.PrayerId, f.Prayer.prayerName })
+                    .Select(g => new
+                    {
+                        g.Key.PrayerId,
+                        PrayerName = g.Key.prayerName,
+                        Men = g.Count(x => x.SexId == "M"),
+                        Women = g.Count(x => x.SexId == "F"),
+                        Children = g.Count(x => x.SexId != "M" && x.SexId != "F")
+                    })
+                    .OrderBy(x => x.PrayerId)
+                    .ToListAsync();
+
+                var result = grouped.Select(g => new TodayFuneralV2Dto
+                {
+                    prayerId = g.PrayerId,
+                    prayerName = g.PrayerName,
+                    men = g.Men > 0 ? g.Men.ToString() : null,
+                    women = g.Women > 0 ? g.Women.ToString() : null,
+                    children = g.Children > 0 ? g.Children.ToString() : null
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting today funeral v2");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+
+        /// <summary>
+        /// Gets today's funerals in detail. Does not require authorization.
+        /// </summary>
+        [HttpGet("today-details")]
+        public async Task<IActionResult> GetTodayFuneralDetails()
+        {
+            try
+            {
+                var today = _timeZoneService.GetCurrentArabTime().Date;
+                var results = await appDbContext.Funerals
+                    .Include(f => f.Prayer)
+                    .Include(f => f.PurialPlace)
+                    .Include(f => f.Sex)
+                    .Where(f => f.Date == today)
+                    .Select(f => new TodayFuneralDetailDto
+                    {
+                        DeadName = f.DeadName,
+                        prayerId = f.PrayerId,
+                        prayerName = f.Prayer.prayerName,
+                        placeId = f.PurialPlaceId,
+                        placeName = f.PurialPlace.placeName,
+                        SexId = f.SexId,
+                        SexName = f.Sex.Name,
+                        AmbulanceNo = f.AmbulanceNo,
+                        GraveNo = f.GraveNo,
+                        Notes = f.Notes
+                    })
+                    .ToListAsync();
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting today funeral details");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         [HttpGet()]
@@ -190,6 +269,9 @@ namespace janaez.webapi.Controllers
                 SexId = dto.Sex,
                 PrayerId = dto.PrayerId,
                 PurialPlaceId = dto.PlaceId,
+                AmbulanceNo = dto.AmbulanceNo,
+                GraveNo = dto.GraveNo,
+                Notes = dto.Notes,
                 CreatedAt = DateTime.Now,
             };
 
@@ -224,6 +306,9 @@ namespace janaez.webapi.Controllers
             funeral.SexId = dto.Sex;
             funeral.PrayerId = dto.PrayerId;
             funeral.PurialPlaceId = dto.PlaceId;
+            funeral.AmbulanceNo = dto.AmbulanceNo;
+            funeral.GraveNo = dto.GraveNo;
+            funeral.Notes = dto.Notes;
             funeral.UpdatedAt = DateTime.Now;
 
             try

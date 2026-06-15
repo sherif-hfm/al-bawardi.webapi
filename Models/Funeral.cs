@@ -25,6 +25,13 @@ namespace janaez.webapi.Models
         [JsonPropertyName("purialplaceId")]
         public int PurialPlaceId { get; set; }
 
+        [Column("ambulanceNo")]
+        public string? AmbulanceNo { get; set; }
+        [Column("graveNo")]
+        public string? GraveNo { get; set; }
+        [Column("notes")]
+        public string? Notes { get; set; }
+
         // Navigation Properties
         public Prayer Prayer { get; set; }
 

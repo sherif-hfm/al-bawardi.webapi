@@ -1,4 +1,4 @@
-﻿namespace janaez.webapi.Models
+namespace janaez.webapi.Models
 {
     public class FuneralUpdateDto
     {
@@ -8,5 +8,8 @@
         public string Sex { get; set; }
         public int PrayerId { get; set; }
         public int PlaceId { get; set; }
+        public string? AmbulanceNo { get; set; }
+        public string? GraveNo { get; set; }
+        public string? Notes { get; set; }
     }
 }
